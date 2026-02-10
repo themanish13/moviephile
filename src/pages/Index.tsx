@@ -1,17 +1,32 @@
-import { movies, posts } from "@/data/mockData";
-import PostCard from "@/components/PostCard";
+import { useQuery } from "@tanstack/react-query";
+import { getTrending, getPopular, posterUrl, getGenreNames } from "@/lib/tmdb";
+import type { TMDBMovie } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import heroBanner from "@/assets/hero-banner.jpg";
-import { TrendingUp, Sparkles, ChevronRight } from "lucide-react";
+import { TrendingUp, Sparkles, ChevronRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const filterTabs = ["For You", "Trending", "New Releases", "My Watchlist"] as const;
+const filterTabs = ["Trending", "Popular"] as const;
 
 const Index = () => {
-  const [activeFilter, setActiveFilter] = useState<string>("For You");
-  const trendingMovies = movies.filter((m) => m.trending || m.newRelease);
+  const [activeFilter, setActiveFilter] = useState<string>("Trending");
+
+  const { data: trending = [], isLoading: trendingLoading } = useQuery({
+    queryKey: ["trending"],
+    queryFn: getTrending,
+  });
+
+  const { data: popular = [], isLoading: popularLoading } = useQuery({
+    queryKey: ["popular"],
+    queryFn: getPopular,
+  });
+
+  const displayMovies = activeFilter === "Trending" ? trending : popular;
+  const isLoading = activeFilter === "Trending" ? trendingLoading : popularLoading;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -44,9 +59,13 @@ const Index = () => {
           </Button>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {trendingMovies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} className="w-32 md:w-36 flex-shrink-0" />
-          ))}
+          {trendingLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="w-32 md:w-36 flex-shrink-0 aspect-[2/3] rounded-xl" />
+              ))
+            : trending.slice(0, 10).map((movie) => (
+                <MovieCard key={movie.id} movie={movie} className="w-32 md:w-36 flex-shrink-0" />
+              ))}
         </div>
       </section>
 
@@ -65,11 +84,15 @@ const Index = () => {
         ))}
       </div>
 
-      {/* Feed */}
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
+      {/* Movie Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {isLoading
+          ? Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[2/3] rounded-xl" />
+            ))
+          : displayMovies.slice(0, 20).map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
       </div>
     </div>
   );

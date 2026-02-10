@@ -1,5 +1,6 @@
-import { userProfile, movies, posts } from "@/data/mockData";
-import PostCard from "@/components/PostCard";
+import { useQuery } from "@tanstack/react-query";
+import { getPopular } from "@/lib/tmdb";
+import { userProfile } from "@/data/mockData";
 import MovieCard from "@/components/MovieCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +8,15 @@ import { Edit, Share2, Star, Film, Bookmark, Eye, Users, UserPlus } from "lucide
 import { useState } from "react";
 import heroBanner from "@/assets/hero-banner.jpg";
 
-const tabs = ["Posts", "Watchlist", "Reviews", "Videos"] as const;
+const tabs = ["Watchlist", "Reviews", "Videos"] as const;
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState<string>("Posts");
+  const [activeTab, setActiveTab] = useState<string>("Watchlist");
+
+  const { data: movies = [] } = useQuery({
+    queryKey: ["popular"],
+    queryFn: getPopular,
+  });
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -31,18 +37,13 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">{userProfile.username}</p>
           </div>
           <div className="flex gap-2 pb-1">
-            <Button variant="gold" size="sm" className="gap-1.5">
-              <Edit className="h-3.5 w-3.5" /> Edit
-            </Button>
-            <Button variant="subtle" size="sm">
-              <Share2 className="h-3.5 w-3.5" />
-            </Button>
+            <Button variant="gold" size="sm" className="gap-1.5"><Edit className="h-3.5 w-3.5" /> Edit</Button>
+            <Button variant="subtle" size="sm"><Share2 className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
 
         <p className="mt-3 text-sm text-secondary-foreground">{userProfile.bio}</p>
 
-        {/* Badges */}
         <div className="flex gap-2 mt-3 flex-wrap">
           {userProfile.badges.map((b) => (
             <Badge key={b} variant="outline" className="border-primary/30 text-primary text-xs gap-1">
@@ -51,7 +52,6 @@ const Profile = () => {
           ))}
         </div>
 
-        {/* Stats */}
         <div className="flex gap-6 mt-4 py-4 border-t border-b border-border/50">
           {[
             { icon: Film, label: "Watched", value: userProfile.stats.watched },
@@ -68,14 +68,10 @@ const Profile = () => {
           ))}
         </div>
 
-        {/* Follow Button */}
         <div className="flex gap-2 mt-4">
-          <Button variant="gold" className="flex-1 gap-2">
-            <UserPlus className="h-4 w-4" /> Follow
-          </Button>
+          <Button variant="gold" className="flex-1 gap-2"><UserPlus className="h-4 w-4" /> Follow</Button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 mt-6 border-b border-border/50">
           {tabs.map((tab) => (
             <button
@@ -86,21 +82,16 @@ const Profile = () => {
               }`}
             >
               {tab}
-              {activeTab === tab && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-              )}
+              {activeTab === tab && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tab Content */}
       <div className="px-4 py-4 space-y-4">
-        {activeTab === "Posts" &&
-          posts.slice(0, 3).map((post) => <PostCard key={post.id} post={post} />)}
         {activeTab === "Watchlist" && (
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-            {movies.map((m) => (
+            {movies.slice(0, 8).map((m) => (
               <MovieCard key={m.id} movie={m} />
             ))}
           </div>
