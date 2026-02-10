@@ -1,38 +1,28 @@
-import { Star, Bookmark, TrendingUp } from "lucide-react";
+import { Star, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import type { Movie } from "@/data/mockData";
+import type { TMDBMovie } from "@/lib/tmdb";
+import { posterUrl } from "@/lib/tmdb";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-export default function MovieCard({ movie, className }: { movie: Movie; className?: string }) {
+export default function MovieCard({ movie, className }: { movie: TMDBMovie; className?: string }) {
   const [saved, setSaved] = useState(false);
+  const year = movie.release_date?.slice(0, 4) || "TBA";
 
   return (
     <Link to={`/movie/${movie.id}`}>
       <div className={cn("group relative rounded-xl overflow-hidden card-hover", className)}>
-        {/* Poster */}
-        <div
-          className="aspect-[2/3] w-full flex flex-col justify-end p-3 relative"
-          style={{ background: movie.poster }}
-        >
-          {/* Overlay */}
+        <div className="aspect-[2/3] w-full relative">
+          <img
+            src={posterUrl(movie.poster_path, "w342")}
+            alt={movie.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex gap-1 z-10">
-            {movie.trending && (
-              <Badge className="bg-primary/90 text-primary-foreground text-[10px] gap-0.5">
-                <TrendingUp className="h-2.5 w-2.5" /> Trending
-              </Badge>
-            )}
-            {movie.newRelease && (
-              <Badge className="bg-cinema-red text-foreground text-[10px]">New</Badge>
-            )}
-          </div>
-
-          {/* Save button overlay */}
+          {/* Save button */}
           <Button
             variant="ghost"
             size="icon"
@@ -43,13 +33,13 @@ export default function MovieCard({ movie, className }: { movie: Movie; classNam
           </Button>
 
           {/* Info */}
-          <div className="relative z-10">
-            <h3 className="font-bold text-sm text-foreground leading-tight">{movie.title}</h3>
+          <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+            <h3 className="font-bold text-sm text-foreground leading-tight line-clamp-2">{movie.title}</h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">{movie.year}</span>
+              <span className="text-xs text-muted-foreground">{year}</span>
               <div className="flex items-center gap-0.5">
                 <Star className="h-3 w-3 text-star fill-star" />
-                <span className="text-xs font-medium text-star">{movie.rating}</span>
+                <span className="text-xs font-medium text-star">{movie.vote_average.toFixed(1)}</span>
               </div>
             </div>
           </div>
