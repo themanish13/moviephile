@@ -57,6 +57,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        gold: "hsl(var(--gold))",
+        "gold-muted": "hsl(var(--gold-muted))",
+        "cinema-red": "hsl(var(--cinema-red))",
+        star: "hsl(var(--star))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +69,55 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "slide-in-right": {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "pulse-gold": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(38 92% 55% / 0.4)" },
+          "50%": { boxShadow: "0 0 0 8px hsl(38 92% 55% / 0)" },
+        },
+        "heart-beat": {
+          "0%": { transform: "scale(1)" },
+          "15%": { transform: "scale(1.3)" },
+          "30%": { transform: "scale(1)" },
+          "45%": { transform: "scale(1.15)" },
+          "60%": { transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.4s ease-out",
+        "fade-in-up": "fade-in-up 0.5s ease-out",
+        "scale-in": "scale-in 0.3s ease-out",
+        "slide-in-right": "slide-in-right 0.3s ease-out",
+        shimmer: "shimmer 2s linear infinite",
+        "pulse-gold": "pulse-gold 2s infinite",
+        "heart-beat": "heart-beat 0.6s ease-in-out",
       },
     },
   },
