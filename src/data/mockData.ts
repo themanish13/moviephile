@@ -71,13 +71,3 @@ export const videos: Video[] = [
   { id: 7, movieId: 7, title: "Eclipse Protocol - Official Trailer", thumbnail: posterGradients[6], duration: "2:38", type: "trailer" },
   { id: 8, movieId: 8, title: "Silent Waters - Behind the Scenes", thumbnail: posterGradients[7], duration: "6:20", type: "behind-the-scenes" },
 ];
-
-export const userProfile = {
-  name: "Alex Rivera",
-  username: "@alexcinema",
-  avatar: "AR",
-  bio: "Film enthusiast | Sci-fi addict | Always watching something",
-  favoriteGenres: ["Sci-Fi", "Thriller", "Drama"],
-  stats: { watchlist: 47, watched: 312, reviews: 89, followers: 1240, following: 356 },
-  badges: ["Top Reviewer", "Movie Buff", "Sci-Fi Expert"],
-};

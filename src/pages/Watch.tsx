@@ -1,8 +1,9 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { getTrending, getPopular, getNowPlaying, getUpcoming, getTopRated, getMoviesByGenre, type TMDBMovie } from "@/lib/tmdb";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { getTrending, getTrendingTV, getPopular, getPopularTV, getNowPlaying, getUpcoming, getTopRated, getMoviesByGenre, getTVByGenre, getMovieVideos, getTVVideos, getMovieDetail, getMovieById, searchMovies, posterUrl, backdropUrl } from "@/lib/tmdb";
+import type { TMDBMovie, TMDBTVShow, TMDBVideo, TMDBMovieDetail } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Grid3X3, List, Plus, Film, Tv, TrendingUp, Star, Calendar, Award, Flame, Search, Star as StarIcon, Info, Globe, Bookmark } from "lucide-react";
+import { Play, Grid3X3, List, Plus, Film, Tv, TrendingUp, Star, Heart, Calendar, Award, Flame, Search, Clock, Star as StarIcon, Info, Globe, Link } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,8 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSearchParams } from "react-router-dom";
-import { useWatchlist } from "@/hooks/useWatchlist";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface PaginatedMovies {
   results: TMDBMovie[];
@@ -19,13 +18,19 @@ interface PaginatedMovies {
   total_pages: number;
 }
 
-const Index = () => {
-  const { isAuthenticated } = useAuth();
-  const { isSaved, toggleMovie } = useWatchlist();
+interface PaginatedTV {
+  results: TMDBTVShow[];
+  page: number;
+  total_pages: number;
+}
+
+const Watch = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedItem, setSelectedItem] = useState<TMDBMovie | null>(null);
+  const [selectedItem, setSelectedItem] = useState<TMDBMovie | TMDBTVShow | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
+  const [isTrailerDialogOpen, setIsTrailerDialogOpen] = useState(false);
   const [contentType, setContentType] = useState<"movie" | "tv">("movie");
   const [category, setCategory] = useState<string>("trending");
   const [selectedGenre, setSelectedGenre] = useState<string>("");
@@ -33,20 +38,6 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const searchQuery = searchParams.get("search") || "";
-
-  // Check if selected item is saved
-  const isItemSaved = selectedItem ? isSaved(selectedItem.id) : false;
-
-  // Handle add/remove from watchlist
-  const handleToggleWatchlist = () => {
-    if (!isAuthenticated) {
-      alert("Please sign in to add movies to your watchlist");
-      return;
-    }
-    if (selectedItem) {
-      toggleMovie(selectedItem as TMDBMovie);
-    }
-  };
 
   // Movie queries
   const trendingMoviesQuery = useInfiniteQuery<PaginatedMovies>({
@@ -92,6 +83,69 @@ const Index = () => {
     enabled: !!selectedGenre,
   });
 
+  // TV queries
+  const trendingTVQuery = useInfiniteQuery<PaginatedTV>({
+    queryKey: ["trending-tv"],
+    queryFn: ({ pageParam = 1 }) => getTrendingTV(pageParam as number),
+    getNextPageParam: (lastPage) => lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+  });
+
+  const popularTVQuery = useInfiniteQuery<PaginatedTV>({
+    queryKey: ["popular-tv"],
+    queryFn: ({ pageParam = 1 }) => getPopularTV(pageParam as number),
+    getNextPageParam: (lastPage) => lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+  });
+
+  const genreTVQuery = useInfiniteQuery<PaginatedTV>({
+    queryKey: ["genre-tv", selectedGenre],
+    queryFn: ({ pageParam = 1 }) => selectedGenre ? getTVByGenre(parseInt(selectedGenre), pageParam as number) : Promise.resolve({ results: [], page: 1, total_pages: 1 }),
+    getNextPageParam: (lastPage) => lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+    enabled: !!selectedGenre,
+  });
+
+  // Fetch movie/TV detail when selected
+  const { data: itemDetail, isLoading: detailLoading } = useQuery<TMDBMovieDetail>({
+    queryKey: ["detail", selectedItem?.id, contentType],
+    queryFn: () => selectedItem && contentType === "movie" ? getMovieDetail(selectedItem.id) : Promise.resolve(null),
+    enabled: !!selectedItem && contentType === "movie" && isDetailDialogOpen,
+  });
+
+  // Fetch videos for selected item
+  const { data: itemVideos = [], isLoading: videosLoading } = useQuery<TMDBVideo[]>({
+    queryKey: ["videos", selectedItem?.id, contentType],
+    queryFn: () => selectedItem ? (contentType === "movie" ? getMovieVideos(selectedItem.id) : getTVVideos(selectedItem.id)) : Promise.resolve([]),
+    enabled: !!selectedItem && isTrailerDialogOpen,
+  });
+
+  // Search query
+  const { data: searchResults = [], isLoading: searchLoading } = useQuery({
+    queryKey: ["search", searchQuery],
+    queryFn: () => searchMovies(searchQuery),
+    enabled: searchQuery.length >= 2,
+  });
+
+  // Handle direct movie playback from query parameter
+  const { data: directMovie } = useQuery({
+    queryKey: ["movieById", searchParams.get("movie")],
+    queryFn: () => {
+      const movieId = searchParams.get("movie");
+      if (!movieId) return null;
+      return getMovieById(parseInt(movieId));
+    },
+    enabled: !!searchParams.get("movie"),
+  });
+
+  useEffect(() => {
+    if (directMovie) {
+      setSelectedItem(directMovie);
+      setContentType("movie");
+      setIsVideoDialogOpen(true);
+    }
+  }, [directMovie]);
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -125,22 +179,28 @@ const Index = () => {
         default: return trendingMoviesQuery;
       }
     } else {
-      return trendingMoviesQuery;
+      switch (category) {
+        case "trending": return trendingTVQuery;
+        case "popular": return popularTVQuery;
+        case "genre": return genreTVQuery;
+        default: return trendingTVQuery;
+      }
     }
   };
 
   const getCurrentData = () => {
+    if (searchQuery) return searchResults;
     const query = getCurrentQuery();
     return query.data?.pages.flatMap((page) => page.results) || [];
   };
 
   const currentQuery = getCurrentQuery();
   const currentData = getCurrentData();
-  const isLoading = currentQuery.isLoading;
+  const isLoading = searchQuery ? searchLoading : currentQuery.isLoading;
 
-  const openDetailDialog = (item: TMDBMovie) => {
+  const openDetailDialog = (item: TMDBMovie | TMDBTVShow, type: "movie" | "tv") => {
     setSelectedItem(item);
-    setContentType("movie");
+    setContentType(type);
     setIsDetailDialogOpen(true);
   };
 
@@ -150,11 +210,6 @@ const Index = () => {
       vidsrc: `https://vidsrc.me/embed/${type === "movie" ? "movie" : "tv"}/${id}`,
     };
     return sources[source] || sources.vidsrc;
-  };
-
-  // Get poster URL helper
-  const getPosterUrl = (path: string | null) => {
-    return path ? `https://image.tmdb.org/t/p/w500${path}` : "/placeholder.svg";
   };
 
   return (
@@ -200,9 +255,17 @@ const Index = () => {
                   <TrendingUp className="h-4 w-4" />
                   Trending
                 </Button>
+                <Button variant={category === "popular" ? "purple" : "subtle"} size="sm" onClick={() => setCategory("popular")} className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Popular
+                </Button>
                 <Button variant={category === "nowplaying" ? "purple" : "subtle"} size="sm" onClick={() => setCategory("nowplaying")} className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   New Releases
+                </Button>
+                <Button variant={category === "upcoming" ? "purple" : "subtle"} size="sm" onClick={() => setCategory("upcoming")} className="flex items-center gap-2">
+                  <Flame className="h-4 w-4" />
+                  Coming Soon
                 </Button>
                 <Button variant={category === "toprated" ? "purple" : "subtle"} size="sm" onClick={() => setCategory("toprated")} className="flex items-center gap-2">
                   <Award className="h-4 w-4" />
@@ -265,34 +328,27 @@ const Index = () => {
               <div key={item.id} className={cn("glass-card rounded-xl overflow-hidden card-hover animate-fade-in block text-left", viewMode === "list" && "flex gap-4")}>
                 <div 
                   className={cn("relative cursor-pointer group", viewMode === "grid" ? "aspect-[2/3]" : "w-40 flex-shrink-0")}
-                  onClick={() => openDetailDialog(item)}
+                  onClick={() => openDetailDialog(item, contentType)}
                 >
                   <img 
-                    src={getPosterUrl(item.poster_path)} 
-                    alt={item.title} 
+                    src={posterUrl(item.poster_path, "w500")} 
+                    alt={contentType === "movie" ? (item as TMDBMovie).title : (item as TMDBTVShow).name} 
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="purple" 
-                      size="lg" 
-                      className="gap-2 px-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedItem(item);
-                        setIsVideoDialogOpen(true);
-                      }}
-                    >
-                      <Play className="h-5 w-5" /> Watch
+                    <Button variant="purple" size="icon" className="h-12 w-12 rounded-full">
+                      <Info className="h-6 w-6" />
                     </Button>
                   </div>
                 </div>
                 <div className={cn("p-3", viewMode === "list" && "flex-1 py-3 pr-4")}>
-                  <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2">{item.title}</h3>
+                  <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2">
+                    {contentType === "movie" ? (item as TMDBMovie).title : (item as TMDBTVShow).name}
+                  </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-[10px] border-primary/30 text-primary capitalize px-1.5 py-0">
-                      {item.release_date?.split('-')[0]}
+                      {contentType === "movie" ? (item as TMDBMovie).release_date?.split('-')[0] : (item as TMDBTVShow).first_air_date?.split('-')[0]}
                     </Badge>
                     <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                       <StarIcon className="h-3 w-3 text-yellow-500 fill-yellow-500" />
@@ -326,15 +382,17 @@ const Index = () => {
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedItem?.title}</DialogTitle>
+            <DialogTitle>
+              {selectedItem ? (contentType === "movie" ? (selectedItem as TMDBMovie).title : (selectedItem as TMDBTVShow).name) : ""}
+            </DialogTitle>
           </DialogHeader>
           
           {selectedItem && (
             <div className="space-y-6">
-              {/* Poster */}
+              {/* Backdrop and Poster */}
               <div className="relative h-64 rounded-xl overflow-hidden">
                 <img 
-                  src={getPosterUrl(selectedItem.backdrop_path || selectedItem.poster_path)} 
+                  src={backdropUrl(itemDetail?.backdrop_path || selectedItem.backdrop_path, "w1280")} 
                   alt="" 
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -344,15 +402,30 @@ const Index = () => {
               {/* Title and Rating */}
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold">{selectedItem.title}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {contentType === "movie" ? (selectedItem as TMDBMovie).title : (selectedItem as TMDBTVShow).name}
+                  </h2>
                   <div className="flex flex-wrap items-center gap-3 mt-2">
                     <Badge variant="outline" className="text-sm">
-                      {selectedItem.release_date?.split('-')[0]}
+                      {contentType === "movie" 
+                        ? (selectedItem as TMDBMovie).release_date?.split('-')[0] 
+                        : (selectedItem as TMDBTVShow).first_air_date?.split('-')[0]}
                     </Badge>
                     <span className="flex items-center gap-1 text-sm">
                       <StarIcon className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                       {selectedItem.vote_average?.toFixed(1)}/10
                     </span>
+                    {contentType === "movie" && itemDetail?.runtime && (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {Math.floor(itemDetail.runtime / 60)}h {itemDetail.runtime % 60}m
+                      </span>
+                    )}
+                    {contentType === "tv" && (selectedItem as TMDBTVShow).number_of_seasons && (
+                      <span className="text-sm text-muted-foreground">
+                        {(selectedItem as TMDBTVShow).number_of_seasons} Seasons
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -360,8 +433,23 @@ const Index = () => {
                     <Play className="h-5 w-5" />
                     Watch Now
                   </Button>
+                  <Button variant="outline" size="lg" className="gap-2" onClick={() => setIsTrailerDialogOpen(true)}>
+                    <Film className="h-5 w-5" />
+                    Trailer
+                  </Button>
                 </div>
               </div>
+
+              {/* Genres */}
+              {itemDetail?.genres && itemDetail.genres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {itemDetail.genres.map((genre) => (
+                    <Badge key={genre.id} variant="secondary" className="text-sm">
+                      {genre.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
 
               {/* Overview */}
               <div>
@@ -373,14 +461,13 @@ const Index = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  variant={isItemSaved ? "purple" : "ghost"}
-                  size="lg"
-                  className="gap-2"
-                  onClick={handleToggleWatchlist}
-                >
-                  <Bookmark className={cn("h-5 w-5", isItemSaved && "fill-current")} />
-                  {isItemSaved ? "In Watchlist" : "Add to Watchlist"}
+                <Button variant="ghost" size="lg" className="gap-2">
+                  <Plus className="h-5 w-5" />
+                  Add to Watchlist
+                </Button>
+                <Button variant="ghost" size="lg" className="gap-2 text-red-500 hover:text-red-600">
+                  <Heart className="h-5 w-5" />
+                  Favorite
                 </Button>
               </div>
             </div>
@@ -394,13 +481,14 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              {selectedItem?.title}
+              {selectedItem ? (contentType === "movie" ? (selectedItem as TMDBMovie).title : (selectedItem as TMDBTVShow).name) : ""}
             </DialogTitle>
           </DialogHeader>
           
           {/* Source Selector */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="text-sm text-muted-foreground flex items-center gap-1">
+              <Link className="h-4 w-4" />
               Stream:
             </span>
             {["vidsrc"].map((source) => (
@@ -411,7 +499,7 @@ const Index = () => {
                 onClick={() => setSelectedSource(source)}
                 className="capitalize text-xs"
               >
-                {source}
+                {source.replace(/([A-Z])/g, ' $1').trim()}
               </Button>
             ))}
           </div>
@@ -420,8 +508,8 @@ const Index = () => {
             <iframe
               width="100%"
               height="450"
-              src={getStreamingUrl(selectedItem.id, selectedSource, "movie")}
-              title={selectedItem.title}
+              src={getStreamingUrl(selectedItem.id, selectedSource, contentType)}
+              title={contentType === "movie" ? (selectedItem as TMDBMovie).title : (selectedItem as TMDBTVShow).name}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -433,8 +521,61 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Trailer Dialog */}
+      <Dialog open={isTrailerDialogOpen} onOpenChange={(open) => { setIsTrailerDialogOpen(open); if (!open) setSelectedVideo(null); }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedItem ? `Trailer - ${contentType === "movie" ? (selectedItem as TMDBMovie).title : (selectedItem as TMDBTVShow).name}` : "Trailer"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedVideo ? (
+            <iframe
+              width="100%"
+              height="450"
+              src={`https://www.youtube.com/embed/${selectedVideo.key}`}
+              title={selectedVideo.name}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          ) : videosLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-muted-foreground">Loading trailers...</div>
+            </div>
+          ) : itemVideos.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Select a trailer:</h4>
+              <div className="grid gap-2 max-h-64 overflow-y-auto">
+                {itemVideos.filter(v => v.site === "YouTube").map((video) => (
+                  <button
+                    key={video.id}
+                    onClick={() => setSelectedVideo(video)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <img 
+                      src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`} 
+                      alt={video.name}
+                      className="w-32 h-18 object-cover rounded"
+                    />
+                    <div>
+                      <div className="font-medium text-sm">{video.name}</div>
+                      <div className="text-xs text-muted-foreground">{video.type}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-muted-foreground">No trailers available</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default Index;
+export default Watch;

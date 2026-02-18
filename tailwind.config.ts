@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -61,6 +62,10 @@ export default {
         "gold-muted": "hsl(var(--gold-muted))",
         "cinema-red": "hsl(var(--cinema-red))",
         star: "hsl(var(--star))",
+        "electric-purple": "hsl(var(--electric-purple))",
+        "electric-purple-light": "hsl(var(--electric-purple-light))",
+        "aqua-blue": "hsl(var(--aqua-blue))",
+        "aqua-blue-light": "hsl(var(--aqua-blue-light))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -121,5 +126,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

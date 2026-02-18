@@ -15,6 +15,52 @@ export interface TMDBMovie {
   runtime?: number;
 }
 
+export interface TMDBTVShow {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  first_air_date: string;
+  vote_average: number;
+  genre_ids: number[];
+  popularity: number;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+}
+
+export interface TMDBEpisode {
+  id: number;
+  name: string;
+  overview: string;
+  episode_number: number;
+  season_number: number;
+  air_date: string;
+  runtime: number | null;
+  still_path: string | null;
+  vote_average: number;
+}
+
+export interface TMDBSeason {
+  id: number;
+  name: string;
+  overview: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string;
+  poster_path: string | null;
+  episodes?: TMDBEpisode[];
+}
+
+export interface TMDBTVShowDetail extends TMDBTVShow {
+  genres: { id: number; name: string }[];
+  tagline: string;
+  status: string;
+  seasons: TMDBSeason[];
+  videos?: { results: TMDBVideo[] };
+  similar?: { results: TMDBTVShow[] };
+}
+
 export interface TMDBMovieDetail extends TMDBMovie {
   runtime: number;
   genres: { id: number; name: string }[];
@@ -73,28 +119,32 @@ async function fetchTMDB<T>(endpoint: string, params: Record<string, string> = {
   return res.json();
 }
 
-export async function getTrending(): Promise<TMDBMovie[]> {
-  const data = await fetchTMDB<{ results: TMDBMovie[] }>("/trending/movie/week");
-  return data.results;
+export async function getTrending(page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/trending/movie/week", { page: page.toString() });
 }
 
-export async function getPopular(): Promise<TMDBMovie[]> {
-  const data = await fetchTMDB<{ results: TMDBMovie[] }>("/movie/popular");
-  return data.results;
+export async function getPopular(page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/movie/popular", { page: page.toString() });
 }
 
-export async function getNowPlaying(): Promise<TMDBMovie[]> {
-  const data = await fetchTMDB<{ results: TMDBMovie[] }>("/movie/now_playing");
-  return data.results;
+export async function getNowPlaying(page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/movie/now_playing", { page: page.toString() });
 }
 
-export async function getUpcoming(): Promise<TMDBMovie[]> {
-  const data = await fetchTMDB<{ results: TMDBMovie[] }>("/movie/upcoming");
-  return data.results;
+export async function getUpcoming(page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/movie/upcoming", { page: page.toString() });
+}
+
+export async function getTopRated(page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/movie/top_rated", { page: page.toString() });
 }
 
 export async function getMovieDetail(id: number): Promise<TMDBMovieDetail> {
   return fetchTMDB<TMDBMovieDetail>(`/movie/${id}`, { append_to_response: "videos,similar,reviews" });
+}
+
+export async function getMovieById(id: number): Promise<TMDBMovie> {
+  return fetchTMDB<TMDBMovie>(`/movie/${id}`, {});
 }
 
 export async function searchMovies(query: string): Promise<TMDBMovie[]> {
@@ -105,4 +155,43 @@ export async function searchMovies(query: string): Promise<TMDBMovie[]> {
 export async function getMovieVideos(id: number): Promise<TMDBVideo[]> {
   const data = await fetchTMDB<{ results: TMDBVideo[] }>(`/movie/${id}/videos`);
   return data.results;
+}
+
+export async function getTrendingTV(page = 1): Promise<{ results: TMDBTVShow[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBTVShow[]; page: number; total_pages: number }>("/trending/tv/week", { page: page.toString() });
+}
+
+export async function getPopularTV(page = 1): Promise<{ results: TMDBTVShow[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBTVShow[]; page: number; total_pages: number }>("/tv/popular", { page: page.toString() });
+}
+
+export async function getTVOnTheAir(): Promise<TMDBTVShow[]> {
+  const data = await fetchTMDB<{ results: TMDBTVShow[] }>("/tv/on_the_air");
+  return data.results;
+}
+
+export async function getTVTopRated(): Promise<TMDBTVShow[]> {
+  const data = await fetchTMDB<{ results: TMDBTVShow[] }>("/tv/top_rated");
+  return data.results;
+}
+
+export async function getMoviesByGenre(genreId: number, page = 1): Promise<{ results: TMDBMovie[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBMovie[]; page: number; total_pages: number }>("/discover/movie", { with_genres: genreId.toString(), page: page.toString() });
+}
+
+export async function getTVByGenre(genreId: number, page = 1): Promise<{ results: TMDBTVShow[]; page: number; total_pages: number }> {
+  return fetchTMDB<{ results: TMDBTVShow[]; page: number; total_pages: number }>("/discover/tv", { with_genres: genreId.toString(), page: page.toString() });
+}
+
+export async function getTVVideos(id: number): Promise<TMDBVideo[]> {
+  const data = await fetchTMDB<{ results: TMDBVideo[] }>(`/tv/${id}/videos`);
+  return data.results;
+}
+
+export async function getTVShowDetail(id: number): Promise<TMDBTVShowDetail> {
+  return fetchTMDB<TMDBTVShowDetail>(`/tv/${id}`, { append_to_response: "videos,similar" });
+}
+
+export async function getTVShowSeason(tvId: number, seasonNumber: number): Promise<TMDBSeason> {
+  return fetchTMDB<TMDBSeason>(`/tv/${tvId}/season/${seasonNumber}`);
 }

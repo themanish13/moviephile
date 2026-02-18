@@ -18,6 +18,11 @@ const buttonVariants = cva(
         gold: "bg-primary text-primary-foreground hover:bg-primary/85 shadow-md shadow-primary/20",
         "ghost-gold": "text-primary hover:bg-primary/10 hover:text-primary",
         subtle: "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+        purple: "bg-electric-purple text-electric-purple-foreground hover:bg-electric-purple/85 shadow-md shadow-electric-purple/20",
+        "ghost-purple": "text-electric-purple hover:bg-electric-purple/10 hover:text-electric-purple",
+        blue: "bg-aqua-blue text-aqua-blue-foreground hover:bg-aqua-blue/85 shadow-md shadow-aqua-blue/20",
+        "ghost-blue": "text-aqua-blue hover:bg-aqua-blue/10 hover:text-aqua-blue",
+        "glass-button": "bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-foreground",
       },
       size: {
         default: "h-10 px-4 py-2",

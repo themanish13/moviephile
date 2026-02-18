@@ -4,49 +4,67 @@
 
 @layer base {
   :root {
-    --background: 220 25% 7%;
-    --foreground: 210 20% 92%;
+    /* Deep Charcoal Background */
+    --background: 220 20% 4%;
+    --foreground: 220 10% 96%;
 
-    --card: 220 22% 11%;
-    --card-foreground: 210 20% 92%;
+    /* Card & Popover - slightly lighter than background */
+    --card: 220 22% 6%;
+    --card-foreground: 220 10% 96%;
 
-    --popover: 220 22% 11%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 220 22% 6%;
+    --popover-foreground: 220 10% 96%;
 
-    --primary: 38 92% 55%;
-    --primary-foreground: 220 25% 7%;
+    /* Electric Purple - Primary */
+    --primary: 280 100% 60%;
+    --primary-foreground: 220 20% 4%;
 
-    --secondary: 220 18% 16%;
-    --secondary-foreground: 210 20% 88%;
+    /* Aqua Blue - Accent */
+    --accent: 190 100% 50%;
+    --accent-foreground: 220 20% 4%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 215 12% 52%;
+    /* Secondary */
+    --secondary: 220 18% 12%;
+    --secondary-foreground: 220 10% 92%;
 
-    --accent: 38 85% 48%;
-    --accent-foreground: 220 25% 7%;
+    /* Muted */
+    --muted: 220 15% 10%;
+    --muted-foreground: 220 8% 60%;
 
+    /* Destructive */
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 220 10% 96%;
 
-    --border: 220 15% 16%;
-    --input: 220 15% 16%;
-    --ring: 38 92% 55%;
+    /* Border & Input */
+    --border: 220 15% 10%;
+    --input: 220 15% 10%;
+    --ring: 280 100% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 25% 9%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 38 92% 55%;
-    --sidebar-primary-foreground: 220 25% 7%;
-    --sidebar-accent: 220 18% 14%;
-    --sidebar-accent-foreground: 210 20% 88%;
-    --sidebar-border: 220 15% 14%;
-    --sidebar-ring: 38 92% 55%;
+    /* Sidebar */
+    --sidebar-background: 220 20% 4%;
+    --sidebar-foreground: 220 10% 85%;
+    --sidebar-primary: 280 100% 60%;
+    --sidebar-primary-foreground: 220 20% 4%;
+    --sidebar-accent: 220 18% 10%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 15% 8%;
+    --sidebar-ring: 280 100% 60%;
 
+    /* Color Palette */
     --gold: 38 92% 55%;
     --gold-muted: 38 60% 35%;
     --cinema-red: 0 72% 45%;
     --star: 45 100% 60%;
+
+    /* New Electric Purple & Aqua Blue */
+    --electric-purple: 280 100% 60%;
+    --electric-purple-light: 280 90% 70%;
+    --electric-purple-dark: 280 100% 45%;
+    --aqua-blue: 190 100% 50%;
+    --aqua-blue-light: 190 90% 60%;
+    --aqua-blue-dark: 190 100% 40%;
   }
 }
 
@@ -58,6 +76,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
   }
 
   /* Custom scrollbar */
@@ -74,22 +93,199 @@
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground));
   }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-size: 16px;
+    }
+  }
 }
 
 @layer utilities {
+  /* Glassmorphism Effects */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border/50;
+    @apply bg-card/60 backdrop-blur-xl border border-white/10;
   }
 
-  .gold-glow {
-    box-shadow: 0 0 20px hsl(38 92% 55% / 0.15), 0 0 60px hsl(38 92% 55% / 0.05);
+  .glass-nav {
+    @apply bg-black/60 backdrop-blur-xl border-t border-white/10;
   }
 
+  .glass-button {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300;
+  }
+
+  .glass-overlay {
+    @apply bg-gradient-to-b from-black/40 via-black/20 to-black/60;
+  }
+
+  /* Neon Glow Effects - Electric Purple */
+  .neon-purple {
+    box-shadow: 
+      0 0 5px hsl(280 100% 60% / 0.5),
+      0 0 20px hsl(280 100% 60% / 0.3),
+      0 0 40px hsl(280 100% 60% / 0.2),
+      0 0 80px hsl(280 100% 60% / 0.1);
+  }
+
+  /* Neon Glow Effects - Aqua Blue */
+  .neon-blue {
+    box-shadow: 
+      0 0 5px hsl(190 100% 50% / 0.5),
+      0 0 20px hsl(190 100% 50% / 0.3),
+      0 0 40px hsl(190 100% 50% / 0.2);
+  }
+
+  /* Glow Text - Electric Purple */
+  .text-glow {
+    text-shadow: 
+      0 0 10px hsl(280 100% 60% / 0.5),
+      0 0 20px hsl(280 100% 60% / 0.3),
+      0 0 40px hsl(280 100% 60% / 0.2);
+  }
+
+  /* Glow Text - Aqua Blue */
+  .text-glow-blue {
+    text-shadow: 
+      0 0 10px hsl(190 100% 50% / 0.5),
+      0 0 20px hsl(190 100% 50% / 0.3);
+  }
+
+  /* Electric Purple Gradient */
+  .purple-gradient {
+    background: linear-gradient(135deg, hsl(280 100% 60%) 0%, hsl(280 90% 70%) 50%, hsl(280 100% 50%) 100%);
+  }
+
+  .purple-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-purple-light to-primary;
+  }
+
+  /* Aqua Blue Gradient */
+  .aqua-gradient {
+    background: linear-gradient(135deg, hsl(190 100% 50%) 0%, hsl(190 90% 60%) 50%, hsl(190 100% 45%) 100%);
+  }
+
+  .aqua-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent via-aqua-blue-light to-accent;
+  }
+
+  /* Purple Glow Effects */
+  .purple-glow {
+    box-shadow: 0 0 20px hsl(280 100% 60% / 0.15), 0 0 60px hsl(280 100% 60% / 0.05);
+  }
+
+  /* Blue Glow Effects */
+  .blue-glow {
+    box-shadow: 0 0 20px hsl(190 100% 50% / 0.15), 0 0 60px hsl(190 100% 50% / 0.05);
+  }
+
+  /* Card Effects */
   .card-hover {
-    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10;
+    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/10;
   }
 
+  .card-glow {
+    @apply transition-all duration-300 hover:shadow-none hover:shadow-primary/20 hover:border-primary/50;
+  }
+
+  /* Text Effects */
   .text-gradient {
     @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  /* Animated Border - Electric Purple */
+  .animated-border {
+    @apply relative overflow-hidden;
+  }
+
+  .animated-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-inherit;
+    background: linear-gradient(90deg, transparent, hsl(280 100% 60% / 0.3), transparent);
+    animation: border-glow 2s ease-in-out infinite;
+  }
+
+  /* Pulse Animation - Electric Purple */
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px hsl(280 100% 60% / 0.15);
+    }
+    50% { 
+      box-shadow: 0 0 40px hsl(280 100% 60% / 0.3), 0 0 60px hsl(280 100% 60% / 0.2);
+    }
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Floating Animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Scrollbar Hide */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Snap Scrolling for Reels */
+  .snap-y-mandatory {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  /* Video Container */
+  .video-container {
+    @apply relative w-full h-full overflow-hidden;
+  }
+
+  .video-container iframe {
+    @apply absolute inset-0 w-full h-full;
+  }
+
+  /* Touch Feedback */
+  .touch-feedback {
+    @apply active:scale-95 active:bg-white/10 transition-all duration-150;
+  }
+
+  /* Gradient Overlays */
+  .gradient-overlay-bottom {
+    @apply bg-gradient-to-b from-transparent via-black/20 to-black/80;
+  }
+
+  .gradient-overlay-all {
+    @apply bg-gradient-to-b from-black/30 via-black/10 to-black/50;
   }
 }

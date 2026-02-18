@@ -1,24 +1,56 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getMovieDetail, posterUrl, backdropUrl } from "@/lib/tmdb";
+import type { TMDBVideo, TMDBMovie } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Heart, Bookmark, Play, Clock, Calendar, Film, ChevronLeft, Share2, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Star, Heart, Bookmark, Play, Clock, Calendar, Film, ChevronLeft, Share2, MessageCircle, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MovieDetail = () => {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
   const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [trailerDialogOpen, setTrailerDialogOpen] = useState(false);
+  const [selectedTrailer, setSelectedTrailer] = useState<TMDBVideo | null>(null);
+
+  // Use watchlist hook for real watchlist functionality
+  const { isSaved, toggleMovie } = useWatchlist();
+  const [localSaved, setLocalSaved] = useState(false);
+
+  // Combine local state with server state for instant feedback
+  const saved = isSaved(Number(id)) || localSaved;
 
   const { data: movie, isLoading } = useQuery({
     queryKey: ["movie", id],
     queryFn: () => getMovieDetail(Number(id)),
     enabled: !!id,
   });
+
+  // Handle add/remove from watchlist
+  const handleToggleWatchlist = () => {
+    if (!isAuthenticated) {
+      // TODO: Show login prompt
+      alert("Please sign in to add movies to your watchlist");
+      return;
+    }
+    
+    if (movie) {
+      toggleMovie(movie as TMDBMovie);
+    }
+    setLocalSaved(!localSaved);
+  };
+
+  const handleWatchTrailer = (trailer: TMDBVideo) => {
+    setSelectedTrailer(trailer);
+    setTrailerDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -40,7 +72,8 @@ const MovieDetail = () => {
 
   const year = movie.release_date?.slice(0, 4) || "TBA";
   const runtime = movie.runtime ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m` : "N/A";
-  const trailers = movie.videos?.results.filter((v) => v.site === "YouTube") || [];
+  const trailers = movie.videos?.results.filter((v) => v.site === "YouTube" && v.type === "Trailer") || [];
+  const allVideos = movie.videos?.results.filter((v) => v.site === "YouTube") || [];
   const similar = movie.similar?.results.slice(0, 8) || [];
   const reviews = movie.reviews?.results.slice(0, 5) || [];
 
@@ -92,10 +125,15 @@ const MovieDetail = () => {
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          <Button variant={liked ? "gold" : "subtle"} className="flex-1 gap-2" onClick={() => setLiked(!liked)}>
+          {trailers.length > 0 && (
+            <Button variant="purple" className="flex-1 gap-2" onClick={() => handleWatchTrailer(trailers[0])}>
+              <Play className="h-4 w-4" /> Watch Trailer
+            </Button>
+          )}
+          <Button variant={liked ? "purple" : "subtle"} className="flex-1 gap-2" onClick={() => setLiked(!liked)}>
             <Heart className={cn("h-4 w-4", liked && "fill-current")} /> {liked ? "Liked" : "Like"}
           </Button>
-          <Button variant={saved ? "gold" : "subtle"} className="flex-1 gap-2" onClick={() => setSaved(!saved)}>
+          <Button variant={saved ? "purple" : "subtle"} className="flex-1 gap-2" onClick={handleToggleWatchlist}>
             <Bookmark className={cn("h-4 w-4", saved && "fill-current")} /> {saved ? "In Watchlist" : "Add to Watchlist"}
           </Button>
           <Button variant="subtle" size="icon"><Share2 className="h-4 w-4" /></Button>
@@ -107,20 +145,18 @@ const MovieDetail = () => {
           <p className="text-sm text-secondary-foreground leading-relaxed">{movie.overview}</p>
         </div>
 
-        {/* Trailers */}
-        {trailers.length > 0 && (
+        {/* Trailers & Videos */}
+        {allVideos.length > 0 && (
           <div>
             <h2 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Play className="h-4 w-4 text-primary" /> Videos
+              <Play className="h-4 w-4 text-primary" /> Videos & Trailers
             </h2>
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {trailers.slice(0, 6).map((v) => (
-                <a
+              {allVideos.slice(0, 6).map((v) => (
+                <button
                   key={v.id}
-                  href={`https://www.youtube.com/watch?v=${v.key}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-56 flex-shrink-0 rounded-lg overflow-hidden glass-card cursor-pointer group"
+                  onClick={() => handleWatchTrailer(v)}
+                  className="w-56 flex-shrink-0 rounded-lg overflow-hidden glass-card cursor-pointer group text-left"
                 >
                   <div className="aspect-video relative">
                     <img
@@ -133,12 +169,14 @@ const MovieDetail = () => {
                         <Play className="h-4 w-4 text-primary-foreground ml-0.5" />
                       </div>
                     </div>
+                    <span className="absolute bottom-1 right-1 bg-background/90 px-1 py-0.5 text-[10px] rounded text-muted-foreground">
+                      {v.type}
+                    </span>
                   </div>
                   <div className="p-2">
                     <p className="text-xs font-medium text-foreground truncate">{v.name}</p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{v.type}</p>
                   </div>
-                </a>
+                </button>
               ))}
             </div>
           </div>
@@ -188,6 +226,39 @@ const MovieDetail = () => {
           </div>
         )}
       </div>
+
+      {/* Trailer Dialog */}
+      <Dialog open={trailerDialogOpen} onOpenChange={setTrailerDialogOpen}>
+        <DialogContent className="sm:max-w-4xl bg-background/95 backdrop-blur-sm">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Play className="h-4 w-4 text-primary" />
+                {selectedTrailer?.name}
+              </DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTrailerDialogOpen(false)}
+                className="h-6 w-6 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          {selectedTrailer && (
+            <div className="aspect-video w-full">
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=1`}
+                title={selectedTrailer.name}
+                className="w-full h-full rounded-lg"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
